@@ -1,11 +1,8 @@
 {
   "name": "lastplayed",
   "version": "1.0.0",
-  "description": "",
+  "description": "LastPlayed desktop app",
   "main": "main.js",
-  "directories": {
-    "doc": "docs"
-  },
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
@@ -17,10 +14,10 @@
   "type": "commonjs",
   "dependencies": {
     "better-sqlite3": "^12.9.0",
-    "chokidar": "^5.0.0",
-    "electron": "^41.5.0"
+    "chokidar": "^5.0.0"
   },
   "devDependencies": {
+    "electron": "^41.5.0",
     "electron-builder": "^26.8.1"
   }
 }

@@ -25,7 +25,7 @@ function isVideoFile(filePath) {
 
 function initDb() {
   const userDataPath = app.getPath('userData');
-  const dbPath = path.join(userDataPath, 'media_tracker.db');
+  const dbPath = path.join(userDataPath, 'lastplayed.db');
   db = new Database(dbPath);
 
   // Schema migrations

@@ -1,10 +1,9 @@
-appId: com.mediatracker.app
-productName: MediaTracker
+appId: com.lastplayed.app
+productName: LastPlayed
 directories:
   output: dist
 win:
   target: nsis
-  icon: assets/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
