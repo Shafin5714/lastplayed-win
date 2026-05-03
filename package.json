@@ -1,0 +1,25 @@
+{
+  "name": "lastplayed",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "chokidar": "^5.0.0",
+    "electron": "^41.5.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.8.1"
+  }
+}
