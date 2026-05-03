@@ -2,8 +2,10 @@ appId: com.lastplayed.app
 productName: LastPlayed
 directories:
   output: dist
+artifactName: ${name}-Setup-${version}.${ext}
 win:
   target: nsis
+  icon: assets/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
