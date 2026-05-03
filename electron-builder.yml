@@ -1,0 +1,19 @@
+appId: com.mediatracker.app
+productName: MediaTracker
+directories:
+  output: dist
+win:
+  target: nsis
+  icon: assets/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+files:
+  - main.js
+  - preload.js
+  - importer.js
+  - series-detector.js
+  - renderer/**
+  - assets/**
+  - node_modules/**
+  - package.json
