@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediaTracker</title>
+  <!-- Outfit Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Custom Titlebar -->
+  <div class="titlebar">
+    <div class="titlebar-drag-region"></div>
+    <div class="titlebar-logo">
+      <i data-lucide="play-circle" class="logo-icon"></i>
+      <span>MediaTracker</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="win-btn minimize" id="btn-minimize"><i data-lucide="minus"></i></button>
+      <button class="win-btn maximize" id="btn-maximize"><i data-lucide="square"></i></button>
+      <button class="win-btn close" id="btn-close"><i data-lucide="x"></i></button>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="continue">
+          <i data-lucide="play"></i> Continue Watching
+        </button>
+        <button class="nav-item" data-tab="history">
+          <i data-lucide="history"></i> All History
+        </button>
+        <button class="nav-item" data-tab="folders">
+          <i data-lucide="folder"></i> Folders & Import
+        </button>
+      </nav>
+
+      <div class="stats-container">
+        <h3 class="stats-title">Library Stats</h3>
+        <div class="stat-item">
+          <span class="stat-label">Total Files</span>
+          <span class="stat-value" id="stat-total-files">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Total Series</span>
+          <span class="stat-value" id="stat-total-series">0</span>
+        </div>
+        <div class="stat-item mt-4">
+          <span class="stat-label">Last Watched</span>
+          <div class="stat-value-sm" id="stat-last-watched">No data yet</div>
+        </div>
+      </div>
+      
+      <div class="sidebar-footer">
+        <div class="app-version">MediaTracker v1.0</div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Import Banner -->
+      <div id="import-banner" class="import-banner">
+        <i data-lucide="check-circle" class="banner-icon"></i>
+        <div class="banner-text" id="import-banner-text">Imported successfully!</div>
+      </div>
+
+      <!-- Tab 1: Continue Watching -->
+      <section id="tab-continue" class="tab-content active">
+        <header class="tab-header">
+          <h1 class="page-title">Continue Watching</h1>
+          <button class="action-btn" id="btn-open-file-nav">
+            <i data-lucide="file-plus"></i> Open File
+          </button>
+        </header>
+        
+        <div class="empty-state hidden" id="continue-empty">
+          <div class="empty-icon"><i data-lucide="film"></i></div>
+          <h3>No series tracked yet</h3>
+          <p>Add a folder or open a file to get started.</p>
+        </div>
+
+        <div class="series-grid" id="continue-grid">
+          <!-- Dummy Data for Layout testing, will be wiped by renderer.js -->
+          <div class="series-card group">
+            <div class="card-cover-placeholder">
+              <i data-lucide="tv"></i>
+            </div>
+            <div class="card-content">
+              <div class="card-header">
+                <span class="episode-badge">12 Episodes</span>
+              </div>
+              <h3 class="series-name">Loading...</h3>
+              <p class="episode-label">--</p>
+              <p class="last-watched">--</p>
+              <button class="play-btn"><i data-lucide="play"></i></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Series Detail View -->
+      <section id="view-series-detail" class="tab-content">
+        <header class="tab-header">
+          <div style="display: flex; align-items: center;">
+            <button class="back-btn" id="btn-back-series"><i data-lucide="arrow-left"></i></button>
+            <h1 class="page-title" id="detail-series-name">Series Detail</h1>
+          </div>
+        </header>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Episode</th>
+                <th>File Name</th>
+                <th>Last Watched</th>
+                <th>Plays</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="detail-episodes-list">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tab 2: All History -->
+      <section id="tab-history" class="tab-content">
+        <header class="tab-header">
+          <h1 class="page-title">All History</h1>
+          <div class="search-bar">
+            <i data-lucide="search"></i>
+            <input type="text" id="history-search" placeholder="Search files or series...">
+          </div>
+        </header>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>Series</th>
+                <th>Ep</th>
+                <th>Last Watched</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="history-list">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tab 3: Folders & Import -->
+      <section id="tab-folders" class="tab-content">
+        <header class="tab-header">
+          <h1 class="page-title">Settings & Folders</h1>
+        </header>
+        
+        <div class="settings-grid">
+          <!-- Watched Folders -->
+          <div class="settings-card">
+            <div class="card-title-row">
+              <h2><i data-lucide="folder-search"></i> Watched Folders</h2>
+              <button class="action-btn-sm" id="btn-add-folder"><i data-lucide="plus"></i> Add Folder</button>
+            </div>
+            <p class="settings-desc">Folders are continuously monitored for new video files.</p>
+            <ul class="folder-list" id="folders-list">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+
+          <!-- History Import -->
+          <div class="settings-card">
+            <h2><i data-lucide="database"></i> History Import</h2>
+            <p class="settings-desc">Import past watch history from VLC, MPC-HC, and Windows Recent files.</p>
+            
+            <div class="import-status-box" id="import-status-box">
+              <p>Import status not available.</p>
+            </div>
+            <button class="action-btn outline" id="btn-rerun-import">
+              <i data-lucide="refresh-cw"></i> Re-run Import
+            </button>
+          </div>
+          
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
