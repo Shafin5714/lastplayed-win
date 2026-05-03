@@ -195,7 +195,8 @@ function registerIpcHandlers() {
       return {
         ...row,
         episode_label: lastEpisode ? lastEpisode.episode_label : null,
-        cover_path: lastEpisode ? path.dirname(lastEpisode.file_path) : null
+        cover_path: lastEpisode ? path.dirname(lastEpisode.file_path) : null,
+        last_file_path: lastEpisode ? lastEpisode.file_path : null
       };
     });
   });
