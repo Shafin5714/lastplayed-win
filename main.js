@@ -6,6 +6,7 @@ const chokidar = require('chokidar');
 
 const { detectSeriesName, detectEpisodeLabel } = require('./series-detector.js');
 const { importAllHistory } = require('./importer.js');
+const { startAutoplayDetector } = require('./autoplay-detector.js');
 
 let mainWindow;
 let db;
@@ -67,14 +68,18 @@ function upsertMedia(filePath, source = 'watcher', timestampMs = null) {
     const episodeLabel = detectEpisodeLabel(fileName);
     const lastWatched = timestampMs || stats.mtimeMs;
 
-    const existing = db.prepare('SELECT id, watch_count FROM media_history WHERE file_path = ?').get(filePath);
+    const existing = db.prepare('SELECT id, watch_count, last_watched FROM media_history WHERE file_path = ?').get(filePath);
 
     if (existing) {
-      db.prepare(`
-        UPDATE media_history 
-        SET last_watched = ?, watch_count = ?, source = ?
-        WHERE id = ?
-      `).run(lastWatched, existing.watch_count + 1, source, existing.id);
+      // Only increment watch_count and update if it's genuinely a newer watch event
+      // (by at least 60 seconds to avoid double-bumping when manually opening a file and the detector catching it)
+      if (lastWatched > existing.last_watched + 60000) {
+        db.prepare(`
+          UPDATE media_history 
+          SET last_watched = ?, watch_count = ?, source = ?
+          WHERE id = ?
+        `).run(lastWatched, existing.watch_count + 1, source, existing.id);
+      }
     } else {
       db.prepare(`
         INSERT INTO media_history 
@@ -303,6 +308,9 @@ app.whenReady().then(async () => {
   }
 
   loadSavedFolders();
+
+  // Start background window title polling for autoplay detection
+  startAutoplayDetector(db, upsertMedia);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

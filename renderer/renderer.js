@@ -300,7 +300,9 @@ window.api.onHistoryUpdated(() => {
 
 window.api.onImportComplete((results) => {
   showImportBanner(results);
-  window.api.onHistoryUpdated();
+  loadSidebarStats();
+  if (activeTab === 'continue') loadContinueWatching();
+  else if (activeTab === 'history') loadAllHistory();
 });
 
 // Initial load

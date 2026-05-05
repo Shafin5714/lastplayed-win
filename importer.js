@@ -29,25 +29,52 @@ function getFileMTimeMs(filePath) {
 async function importAllHistory(db, upsertFn) {
   const results = { vlc: 0, mpc: 0, windows: 0, total: 0 };
 
-  // Check if import already done
-  try {
-    const row = db.prepare("SELECT value FROM app_state WHERE key = 'import_done'").get();
-    if (row && row.value === 'true') {
-      return results;
-    }
-  } catch (err) {
-    // If table doesn't exist or query fails, just proceed.
-  }
+  // We want to run import every time the app opens to sync latest external history
+  // so we do not check or set 'import_done' anymore.
 
   // Helper to filter and upsert
   const doUpsert = (filePath, source, timestampMs) => {
     if (isVideoFile(filePath) && fs.existsSync(filePath)) {
       upsertFn(filePath, source, timestampMs);
       if (source === 'vlc') results.vlc++;
-      else if (source === 'mpc') results.mpc++;
+      else if (source.startsWith('mpc')) results.mpc++;
       else if (source === 'windows') results.windows++;
       results.total++;
     }
+  };
+
+  // Helper to process ordered list of recently watched files (index 0 is newest)
+  // Synthesizes timestamps so recently watched files appear at the top, without inflating watch counts on restart
+  const processOrderedRecentList = (sourceName, rawList) => {
+    if (!rawList || rawList.length === 0) return;
+
+    const validFiles = rawList.filter(filePath => isVideoFile(filePath) && fs.existsSync(filePath));
+    if (validFiles.length === 0) return;
+    
+    let prevList = [];
+    try {
+      const row = db.prepare("SELECT value FROM app_state WHERE key = ?").get(`${sourceName}_list`);
+      if (row && row.value) {
+        prevList = JSON.parse(row.value);
+      }
+    } catch (err) {}
+
+    const now = Date.now();
+    validFiles.forEach((filePath, idx) => {
+      const prevIdx = prevList.indexOf(filePath);
+      if (prevIdx === -1 || idx < prevIdx) {
+        // Item moved up or is new -> genuinely recently watched!
+        doUpsert(filePath, sourceName, now - (idx * 1000));
+      } else {
+        // Item just shifted down or stayed same. Use file mtime so it's not falsely bumped.
+        const mtime = getFileMTimeMs(filePath);
+        doUpsert(filePath, sourceName, mtime);
+      }
+    });
+
+    try {
+      db.prepare("INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)").run(`${sourceName}_list`, JSON.stringify(validFiles));
+    } catch (err) {}
   };
 
   // Source 1: VLC
@@ -77,48 +104,54 @@ async function importAllHistory(db, upsertFn) {
 
       if (listStr) {
         const uris = listStr.split(',').filter(x => x);
-        const times = timesStr ? timesStr.split(',').map(x => parseInt(x, 10)) : [];
+        const orderedPaths = [];
 
-        uris.forEach((uri, i) => {
+        uris.forEach((uri) => {
           try {
             if (uri.startsWith('file:///')) {
               let decoded = decodeURIComponent(uri.substring(8));
               if (path.sep === '\\') {
                 decoded = decoded.replace(/\//g, '\\');
               }
-              const mtime = getFileMTimeMs(decoded);
-              // Use timestamp from VLC if valid, otherwise fallback to mtime
-              const timestampMs = (times[i] && times[i] > 0) ? times[i] : mtime;
-              doUpsert(decoded, 'vlc', timestampMs);
+              orderedPaths.push(decoded);
             }
           } catch (e) {}
         });
+        
+        processOrderedRecentList('vlc', orderedPaths);
       }
     }
   } catch (err) {
     console.error('VLC import failed', err);
   }
 
-  // Source 2 & 3: MPC-HC and MPC-BE
-  const importMpc = async (regPath) => {
+  const importMpc = async (regPath, sourceName) => {
     try {
       const { stdout } = await execPromise(`reg query "${regPath}"`);
       const lines = stdout.split('\n');
+      
+      const filesMap = {};
       for (const line of lines) {
-        const match = line.match(/^\s*File\d+\s+REG_SZ\s+(.+)$/i);
+        const match = line.match(/^\s*File(\d+)\s+REG_SZ\s+(.+)$/i);
         if (match) {
-          const filePath = match[1].trim();
-          const mtime = getFileMTimeMs(filePath);
-          doUpsert(filePath, 'mpc', mtime);
+          const num = parseInt(match[1], 10);
+          filesMap[num] = match[2].trim();
         }
       }
+      
+      const orderedPaths = Object.keys(filesMap)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map(k => filesMap[k]);
+
+      processOrderedRecentList(sourceName, orderedPaths);
     } catch (err) {
       // Silently ignore if app is not installed or key missing
     }
   };
 
-  await importMpc('HKCU\\Software\\MPC-HC\\MPC-HC\\Recent File List');
-  await importMpc('HKCU\\Software\\MPC-BE\\Recent File List');
+  await importMpc('HKCU\\Software\\MPC-HC\\MPC-HC\\Recent File List', 'mpc_hc');
+  await importMpc('HKCU\\Software\\MPC-BE\\Recent File List', 'mpc_be');
 
   // Source 4: Windows Recent
   try {
@@ -142,12 +175,7 @@ async function importAllHistory(db, upsertFn) {
     console.error('Windows Recent import failed', err);
   }
 
-  // Mark as done
-  try {
-    db.prepare("INSERT OR REPLACE INTO app_state (key, value) VALUES ('import_done', 'true')").run();
-  } catch (err) {
-    console.error('Could not save import_done state', err);
-  }
+  // Removed import_done saving so it re-syncs on next open
 
   return results;
 }
